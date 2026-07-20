@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Susan & Chuck — 80th Birthday Slideshow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0c0a08}
+  *{box-sizing:border-box}
+  #stage{position:fixed;inset:0;overflow:hidden;background:radial-gradient(130% 120% at 32% 18%,#f1e8d7 0%,#e5d6ba 46%,#d3c1a0 100%);font-family:'Nunito',system-ui,sans-serif}
+  .layer{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transition:opacity 1.3s ease}
+  .cluster{display:flex;align-items:center;justify-content:center;gap:clamp(6px,2vw,52px);padding:3vw;flex-wrap:nowrap}
+  .polaroid{background:#fffdf8;padding:clamp(9px,.9vw,17px) clamp(9px,.9vw,17px) clamp(28px,3.2vw,54px);box-shadow:0 26px 60px -22px rgba(50,32,10,.6)}
+  .polaroid img{display:block;height:auto;width:auto;background:#e8e0d2}
+  .cover{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;padding:6vw}
+  .cover .l1{font:600 clamp(34px,4.6vw,86px)/1 'Caveat',cursive;color:#7a4a2c;transform:rotate(-2.4deg)}
+  .cover .l2{font:700 clamp(74px,13vw,250px)/.86 'Caveat',cursive;color:#38271a;transform:rotate(-.6deg)}
+  .cover .l3{margin-top:clamp(14px,2vw,34px);padding:clamp(6px,.8vw,14px) clamp(18px,2.4vw,44px);background:#f4c53f;color:#5a3d16;font:700 clamp(18px,2.3vw,42px)/1 'Caveat',cursive;transform:rotate(1.4deg);box-shadow:0 8px 20px -8px rgba(80,50,10,.45)}
+  #title{position:absolute;bottom:clamp(16px,2.6vh,34px);left:0;right:0;text-align:center;pointer-events:none;font:600 clamp(16px,2vw,30px)/1 'Caveat',cursive;color:rgba(60,40,20,.42);text-shadow:0 1px 0 rgba(255,252,244,.5);letter-spacing:.01em;opacity:0;transition:opacity .5s}
+  #paused{position:absolute;top:22px;left:50%;transform:translateX(-50%);padding:7px 18px;border-radius:999px;background:rgba(40,26,12,.6);color:#f6ecd8;font:700 13px/1 'Nunito',sans-serif;letter-spacing:.08em;text-transform:uppercase;display:none}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="layer" id="layPA" style="opacity:1"></div>
+  <div class="layer" id="layB" style="opacity:0"></div>
+  <div id="title">Susan &amp; Chuck&rsquo;s 80th Birthday Celebration</div>
+  <div id="paused">Paused &middot; press space to resume</div>
+</div>
+<script>
+(function(){
+  var COUNT=228, SECS=3;
+  function src(idx){ return 'reel/'+String(idx).padStart(3,'0')+'.jpg'; }
+  var seq=[]; for(var i=1;i<=COUNT;i++) seq.push(i);
+  var groups=[], gi=0, big=true;
+  while(gi<seq.length){
+    var target=big?3:2, g=[];
+    while(g.length<target && gi<seq.length){ g.push(seq[gi]); gi++; }
+    if(seq.length-gi===1){ g.push(seq[gi]); gi++; }
+    groups.push(g); big=!big;
+  }
+  var slides=[null].concat(groups);
+  function frame(idx){ var rot=((idx*53)%8)-4, ty=((idx*17)%40)-20; return 'rotate('+rot+'deg) translateY('+ty+'px)'; }
+  function sizeFor(n){ if(n>=3) return {mh:'58vh',mw:'27vw'}; if(n===2) return {mh:'68vh',mw:'40vw'}; return {mh:'74vh',mw:'78vw'}; }
+  function coverHTML(){ return '<div class="cover"><div class="l1">Happy 80<span style="font-size:.62em;vertical-align:super">th</span> Birthday</div><div class="l2">Susan &amp; Chuck</div><div class="l3">80th Birthday Celebration</div></div>'; }
+  function groupHTML(g){ var sz=sizeFor(g.length), h='<div class="cluster">'; for(var k=0;k<g.length;k++){ var idx=g[k]; h+='<div class="polaroid" style="transform:'+frame(idx)+'"><img src="'+src(idx)+'" style="max-height:'+sz.mh+';max-width:'+sz.mw+'"></div>'; } return h+'</div>'; }
+  function render(slide){ return slide==null ? coverHTML() : groupHTML(slide); }
+  function preload(np){ var g=slides[np]; if(!g) return; g.forEach(function(idx){ var im=new Image(); im.src=src(idx); }); }
+  var layers=[document.getElementById('layPA'), document.getElementById('layB')];
+  var front=0, pos=0, timer=null, paused=false;
+  var titleEl=document.getElementById('title'), pausedEl=document.getElementById('paused');
+  layers[0].innerHTML=render(slides[0]);
+  preload(1);
+  function show(np){
+    var back=1-front;
+    layers[back].innerHTML=render(slides[np]);
+    layers[back].style.opacity='1'; layers[front].style.opacity='0';
+    front=back; pos=np;
+    titleEl.style.opacity = slides[np]==null ? '0' : '1';
+    preload((np+1)%slides.length);
+  }
+  function advance(dir){ var np=(pos+dir+slides.length)%slides.length; show(np); }
+  function restart(){ clearInterval(timer); timer=setInterval(function(){ if(!paused) advance(1); }, SECS*1000); }
+  restart();
+  document.addEventListener('keydown', function(e){
+    if(e.code==='Space'){ e.preventDefault(); paused=!paused; pausedEl.style.display=paused?'block':'none'; }
+    else if(e.key==='ArrowRight'){ advance(1); restart(); }
+    else if(e.key==='ArrowLeft'){ advance(-1); restart(); }
+  });
+})();
+</script>
+</body>
+</html>
